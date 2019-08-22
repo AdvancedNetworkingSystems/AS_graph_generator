@@ -7,6 +7,7 @@
 """Generates graphs resembling the Internet Autonomous System network"""
 
 import random
+import sys
 import networkx as nx
 
 
@@ -61,22 +62,29 @@ class AS_graph_generator(object):
 
         Returns
         -------
-        G: DiGraph
+        G: Graph
             Core network
         '''
 
-        self.G = nx.DiGraph()
+        self.G = nx.Graph()
         for i in range(self.n_t):
             self.G.add_node(i, type="T")
             for r in self.regions:
                 self.regions[r].add(i)
             for j in self.G.nodes():
                 if i != j:
-                    self.G.add_edge(i, j, type='peer')
-                    self.G.add_edge(j, i, type='peer')
+                    self.add_edge(i, j, 'peer')
             self.customers[i] = set([])
             self.providers[i] = set([])
         return self.G
+
+
+    def add_edge(self, i, j, kind):
+        if kind=='transit':
+            customer=str(i)
+        else:
+            customer='none'
+        self.G.add_edge(i, j, type=kind, customer=customer)
 
 
     def choose_peer_pref_attach(self, node_list):
@@ -159,7 +167,7 @@ class AS_graph_generator(object):
             else:
                 j = self.choose_node_pref_attach(m_options)
                 m_options.remove(j)
-            self.G.add_edge(i, j, type='transit', customer=i)
+            self.add_edge(i, j, 'transit')
             self.add_customer(i, j)
             d+=1
 
@@ -199,8 +207,7 @@ class AS_graph_generator(object):
         #print(f"options for node {m}: {node_options}")
         if len(node_options)>0:
             j = self.choose_peer_pref_attach(node_options)
-            self.G.add_edge(m, j, type='peer')
-            self.G.add_edge(j, m, type='peer')
+            self.add_edge(m, j, 'peer')
             self.G.nodes[m]['peers'] += 1
             self.G.nodes[j]['peers'] += 1
             return True
@@ -248,8 +255,7 @@ class AS_graph_generator(object):
         # print(f"adding peer for {cp}, options {node_options}")
         if len(node_options)>0:
             j = random.sample(node_options, 1)[0]
-            self.G.add_edge(cp, j, type='peer')
-            self.G.add_edge(j, cp, type='peer')
+            self.add_edge(cp, j, 'peer')
             self.G.nodes[cp]['peers'] += 1
             self.G.nodes[j]['peers'] += 1
             return True
@@ -333,7 +339,7 @@ class AS_graph_generator(object):
 
         Returns
         -------
-        G: DiGraph object
+        G: Graph object
 
         Notes
         -----
@@ -378,7 +384,7 @@ class AS_graph_generator(object):
 
 
 def internet_as_graph(n):
-    ''' Generates a random directed graph resembling the Internet Autonomous
+    ''' Generates a random undirected graph resembling the Internet Autonomous
     System Network.
 
     Parameters
@@ -388,8 +394,27 @@ def internet_as_graph(n):
 
     Returns
     -------
-    G: DiGraph object
-        A randomly generated directed graph
+    G: Networkx Graph object
+        A randomly generated undirected graph
+
+    Notes
+    -----
+    The generator follows the algorithm by Elmokashfi et al. [1] and it grants
+    the properties described in the related paper.
+    
+    Each node models an eBGP speaker, with an attribute 'type' specifying its
+    kind; tier-1 (T), mid-level (M), customer (C) or content-provider (CP).
+    Each edge models an ADV communication link (hence, bidirectional) with
+    attributes:
+        - type: transit|peer, the kind of commercial agreement between nodes;
+        - customer: <node id>, the identifier of the node acting as customer
+            (none if type is peer).
+
+    References
+    ----------
+    [1] A. Elmokashfi, A. Kvalbein and C. Dovrolis, "On the Scalability of 
+    BGP: The Role of Topology Growth," in IEEE Journal on Selected Areas 
+    in Communications, vol. 28, no. 8, pp. 1250-1261, October 2010.
     '''
     GG = AS_graph_generator(n)
     G = GG.generate()
@@ -397,5 +422,8 @@ def internet_as_graph(n):
 
 
 if __name__ == "__main__":
-    G = internet_as_graph(5000)
+    n = 1000
+    if len(sys.argv) > 1:
+        n = int(sys.argv[1])
+    G = internet_as_graph(n)
     nx.write_graphml(G, f"baseline-{len(G.nodes())}.graphml")
