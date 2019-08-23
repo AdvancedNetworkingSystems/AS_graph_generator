@@ -17,6 +17,14 @@ The file *test_main_properties.py* checks the aforementioned properties.
 Besides properties 1,4, the properties 2,3 cannot be checked directly but they
 are considered through plotting, as indicated in [1].
 
+## Usage
+
+While the interesting code is inside *bgp.py*, you can generate random AS graphs by calling:
+'''
+	./generate.py <number_of_nodes> <number_of_graphs>
+'''
+This will produce a series of graphml files in the current directory called *baseline-<number_of_nodes>-<id>.graphml*.
+
 ## References
 
 [1] A. Elmokashfi, A. Kvalbein and C. Dovrolis, "On the Scalability of 
