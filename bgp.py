@@ -9,15 +9,30 @@
 import random
 import sys
 import networkx as nx
+from math import floor
 
 
 def uniform_int_from_avg(a, m):
     ''' Returns a random integer uniformly taken from a distribution with 
-    minimum value a and average value m.
+    minimum value 'a' and average value 'm', X~U(a,b), E[X]=m, X in N where
+    b = 2*m - a.
+
+    Notes
+    -----
+    p = (b-floor(b))/2
+    X = X1 + X2; X1~U(a,floor(b)), X2~B(p)
+    E[X] = E[X1] + E[X2] = (floor(b)+a)/2 + (b-floor(b))/2 = (b+a)/2 = m
     '''
     assert(m>=a)
     b = 2*m - a
-    return int(round(random.random()*(b-a) + a))
+    p = (b-floor(b))/2
+    X1 = int(round(random.random()*(floor(b)-a) + a))
+    if random.random() < p:
+        X2 = 1
+    else:
+        X2 = 0
+    return X1 + X2
+
 
 
 def choose_pref_attach(degs):
@@ -237,7 +252,7 @@ class AS_graph_generator(object):
             if cp in self.regions[r]:
                 node_options = node_options.union(self.regions[r])
 
-        # options are restricted to the indicated kind ('M' or 'C')
+        # options are restricted to the indicated kind ('M' or 'CP')
         node_options = self.nodes[to_kind].intersection(node_options)
 
         # remove self
@@ -296,10 +311,10 @@ class AS_graph_generator(object):
         in Communications, vol. 28, no. 8, pp. 1250-1261, October 2010.
         '''
 
-        self.n_t = int(round(random.random()*2+4))  # number of T nodes
+        self.n_t = min(n, int(round(random.random()*2+4)))  # number of T nodes
         self.n_m = int(round(0.15*n))  # number of M nodes
         self.n_cp = int(round(0.05*n))  # number of CP nodes
-        self.n_c = n-self.n_t-self.n_m-self.n_cp  # number of C nodes
+        self.n_c = max(0, n-self.n_t-self.n_m-self.n_cp)  # number of C nodes
 
         self.d_m = 2 + (2.5*n)/10000  # average multihoming degree for M nodes
         self.d_cp = 2 + (1.5*n)/10000  # average multihoming degree for CP nodes
@@ -383,7 +398,7 @@ class AS_graph_generator(object):
         return self.G
 
 
-def internet_as_graph(n):
+def internet_as_graph(n, seed=None):
     ''' Generates a random undirected graph resembling the Internet Autonomous
     System Network.
 
@@ -391,6 +406,8 @@ def internet_as_graph(n):
     ----------
     n: integer in [1000, 10000]
         Number of graph nodes
+    seed: integer, optional
+        Seed for random number generator.
 
     Returns
     -------
@@ -416,6 +433,7 @@ def internet_as_graph(n):
     BGP: The Role of Topology Growth," in IEEE Journal on Selected Areas 
     in Communications, vol. 28, no. 8, pp. 1250-1261, October 2010.
     '''
+    random.seed(seed)
     GG = AS_graph_generator(n)
     G = GG.generate()
     return G
@@ -425,5 +443,5 @@ if __name__ == "__main__":
     n = 1000
     if len(sys.argv) > 1:
         n = int(sys.argv[1])
-    G = internet_as_graph(n)
+    G = internet_as_graph(n, seed=1)
     nx.write_graphml(G, f"baseline-{len(G.nodes())}.graphml")

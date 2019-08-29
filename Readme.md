@@ -1,7 +1,7 @@
 # AS graph generator
 
 bgp.py contains the code of the generator I developed starting from [1].
-It generates random NetworkX DiGraph objects following the algorithm published
+It generates random NetworkX Graph objects following the algorithm published
 in [1].
 
 ## Properties
@@ -20,10 +20,22 @@ are considered through plotting, as indicated in [1].
 ## Usage
 
 While the interesting code is inside *bgp.py*, you can generate random AS graphs by calling:
-'''
+```bash
 	./generate.py <number_of_nodes> <number_of_graphs>
-'''
+```
 This will produce a series of graphml files in the current directory called *baseline-<number_of_nodes>-<id>.graphml*.
+
+## Tests
+
+Unit testing can be performed with:
+```bash
+	pytest -s test_internet_as_graph.py
+```
+Feature tests require the execution of
+```bash
+	./test_main_properties.py
+```
+and the analysis of the resulting images.
 
 ## References
 
